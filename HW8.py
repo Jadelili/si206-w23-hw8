@@ -1,7 +1,7 @@
-# Your name: 
-# Your student id:
-# Your email:
-# List who you have worked with on this homework:
+# Your name: Xiaoyi Li
+# Your student id: 20937100
+# Your email: jadeli@umich.edu
+# List who you have worked with on this homework: None
 
 import matplotlib.pyplot as plt
 import os
@@ -9,13 +9,69 @@ import sqlite3
 import unittest
 
 def load_rest_data(db):
-    """
-    This function accepts the file name of a database as a parameter and returns a nested
-    dictionary. Each outer key of the dictionary is the name of each restaurant in the database, 
-    and each inner key is a dictionary, where the key:value pairs should be the category, 
-    building, and rating for the restaurant.
-    """
-    pass
+    outer_d = {}
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path+'/'+db)
+    cur = conn.cursor()
+    cur.execute('''SELECT restaurants.name, buildings.building FROM restaurants JOIN buildings
+    ON restaurants.category_id = buildings.id''')
+    building_list = cur.fetchall()
+    cur.execute('''SELECT restaurants.name, restaurants.rating, categories.category FROM restaurants
+    JOIN categories ON restaurants.building_id = categories.id''')
+    cat_list = cur.fetchall()
+    for building in building_list:
+        inner_d = {}
+        inner_d["building"] = building[1]
+        # if building[0] not in outer_d.keys():
+        outer_d[building[0]] = inner_d
+        # else:
+        #     print(outer_d)
+        #     outer_d[building[0]].append(inner_d)
+    for cat in cat_list:
+        inner_d = {}
+        inner_d["category"] = cat[2]
+        inner_d["rating"] = cat[1]
+        # if cat[0] not in outer_d.keys():
+        outer_d[cat[0]] = inner_d
+        # else:
+        #     outer_d[cat[0]].append(inner_d)
+    print(outer_d)
+    # for building in building_list:
+    #     inner_d = {}
+    #     inner_d["building"] = building[1]
+    #     # if building[0] not in outer_d.keys():
+    #     outer_d[building[0]] = inner_d
+    #     # else:
+    #     #     outer_d[building[0]]
+    # for cat in cat_list:
+    #     c_inner_d = {}
+    #     c_inner_d["category"] = cat[2]
+    #     c_inner_d["rating"] = cat[1]
+    #     outer_d[cat[0]] = c_inner_d
+    # print(outer_d)
+
+    # for building in building_list:
+    #     # b_inner_d = {}
+    #     new_d = {}
+    #     new_d["building"] = building[1]
+    #     b_inner_d = outer_d.get(building[0], {})
+    #     b_inner_d.update(new_d)
+    #     outer_d[building[0]] = b_inner_d
+    # for cat in cat_list:
+    #     new_d = {}
+    #     c_inner_d = {}
+    #     new_d["category"] = cat[2]
+    #     new_d["rating"] = cat[1]
+    #     c_inner_d = outer_d.get(building[0], {})
+    #     c_inner_d.update(new_d)
+    #     outer_d[building[0]] = c_inner_d
+    # for cat in cat_list:
+    #     c_inner_d = {}
+    #     c_inner_d["category"] = cat[2]
+    #     c_inner_d["rating"] = cat[1]
+    #     outer_d[building[0]] = c_inner_d
+    # print(outer_d)
+
 
 def plot_rest_categories(db):
     """
@@ -49,7 +105,7 @@ def get_highest_rating(db): #Do this through DB as well
 
 #Try calling your functions here
 def main():
-    pass
+    load_rest_data("South_U_Restaurants.db")
 
 class TestHW8(unittest.TestCase):
     def setUp(self):
@@ -100,4 +156,4 @@ class TestHW8(unittest.TestCase):
 
 if __name__ == '__main__':
     main()
-    unittest.main(verbosity=2)
+    # unittest.main(verbosity=2)
