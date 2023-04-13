@@ -29,42 +29,138 @@ def load_rest_data(db):
         inner_d["category"] = cat[2]
         inner_d["rating"] = cat[1]
         outer_d[cat[0]].update(inner_d)
-    print(outer_d)
+    # print(outer_d)
+    return outer_d
     
     
 def plot_rest_categories(db):
-    """
-    This function accepts a file name of a database as a parameter and returns a dictionary. The keys should be the
-    restaurant categories and the values should be the number of restaurants in each category. The function should
-    also create a bar chart with restaurant categories and the count of number of restaurants in each category.
-    """
-    pass
+    outer_d = {}
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path+'/'+db)
+    cur = conn.cursor()
+    cur.execute("SELECT categories.category, restaurants.category_id FROM categories JOIN restaurants ON categories.id = restaurants.category_id")
+    cat_orig_list = cur.fetchall()
+
+    cat_list = []
+    for i in cat_orig_list:
+        cat_list.append(i)
+
+    d = {}
+    for cat in cat_list:
+        cur.execute("SELECT COUNT(*) FROM restaurants WHERE category_id = ?", (cat[1],))    # sqlite3.InterfaceError: Error binding parameter 0 - probably unsupported type.
+        # fetchall returns a list of tuples (even with one tuple inside), whereas fetchone returns one thing (a tuple with 2+ elements) (don't have to access twice)
+        count = cur.fetchone()
+        d[cat[0]] = count[0]
+    s_d = sorted(d.items(), key = lambda x:x[1])  # a list of tuples, not a dict
+    
+
+    fig = plt.figure(figsize=(8,5))
+    # fig.tight_layout()
+    plt.subplots_adjust(left=0.3, right=0.9, bottom=0.3, top=0.9, wspace=1, hspace=1)
+    
+    # ax = fig.add_subplot(111)
+    # fig, ax = plt.subplots()
+    plt.subplot(111)
+    for i in s_d:
+        plt.barh(i[0], i[1], color=("lightblue"))
+    # for i in s_d:
+    #     ax.barh(i[0], i[1], color=("lightblue"))
+
+    # ax.set_title("Types of Restaurant on South University Ave")
+    # ax.set_xlabel("Number of Restaurants")
+    # ax.set_ylabel("Restaurant Categories")
+    plt.suptitle("Types of Restaurant on South University Ave")   # add a centered supertitle
+    plt.xlabel("Number of Restaurants")
+    plt.ylabel("Restaurant Categories")
+
+    plt.show()
+    return d
+
 
 def find_rest_in_building(building_num, db):
-    '''
-    This function accepts the building number and the filename of the database as parameters and returns a list of 
-    restaurant names. You need to find all the restaurant names which are in the specific building. The restaurants 
-    should be sorted by their rating from highest to lowest.
-    '''
-    pass
+    path = os.path.dirname(os.path.abspath(__file__))       # need to initiate each time ?
+    conn = sqlite3.connect(path+'/'+db)
+    cur = conn.cursor()
+    cur.execute('''SELECT restaurants.name, restaurants.rating FROM buildings JOIN restaurants ON buildings.id = restaurants.building_id 
+                WHERE buildings.building = ?''', (building_num,))
+    res_list = cur.fetchall()
+    s_res_list = sorted(res_list, key = lambda x:x[1], reverse=True) 
+    lst = []
+    for i in s_res_list:
+        lst.append(i[0])
+    return lst
+
 
 #EXTRA CREDIT
 def get_highest_rating(db): #Do this through DB as well
-    """
-    This function return a list of two tuples. The first tuple contains the highest-rated restaurant category 
-    and the average rating of the restaurants in that category, and the second tuple contains the building number 
-    which has the highest rating of restaurants and its average rating.
+    path = os.path.dirname(os.path.abspath(__file__))       
+    conn = sqlite3.connect(path+'/'+db)
+    cur = conn.cursor()                                     # sequence of from, join
+    
+    cur.execute("SELECT category FROM categories")
+    cat_list = cur.fetchall()
+    cur.execute("SELECT building FROM buildings")
+    bud_list = cur.fetchall()
+        
+    rating_list1 = []
+    rating_list2 = []
+    for i in cat_list:
+        cur.execute('''SELECT categories.category, AVG(restaurants.rating) FROM categories JOIN restaurants 
+        ON categories.id = restaurants.category_id WHERE categories.category = ?''', (i[0],))
+        rating1 = cur.fetchone()
+        rating_list1.append(rating1)
+    for j in bud_list:
+        cur.execute('''SELECT buildings.building, AVG(restaurants.rating) FROM buildings JOIN restaurants 
+        ON buildings.id = restaurants.building_id WHERE buildings.building = ?''', (j[0],))
+        rating2 = cur.fetchone()
+        rating_list2.append(rating2)
 
-    This function should also plot two barcharts in one figure. The first bar chart displays the categories 
-    along the y-axis and their ratings along the x-axis in descending order (by rating).
-    The second bar chart displays the buildings along the y-axis and their ratings along the x-axis 
-    in descending order (by rating).
-    """
-    pass
+    rating_cat = sorted(rating_list1, key = lambda x:x[1])
+    rating_bud = sorted(rating_list2, key = lambda x:x[1])
+    # print(rating_bud)
+
+    # fig1, ax1 = plt.subplot(121)            # subplots & add_subplot
+    # for m in rating_cat:
+    #     ax1.barh(round(m[1],2), m[0], color=("lightblue"))
+
+    # fig2, ax2 = plt.subplot(122)
+    # for n in rating_bud:
+    #     ax2.barh(round(n[1],2), n[0], color=("lightblue"))
+    # plt.show()
+
+    fig = plt.figure(figsize=(8,8))
+    fig.tight_layout()
+    plt.subplots_adjust(left=0.3, right=0.9, bottom=0.3, top=0.9)
+    plt.subplot(121)
+    plt.suptitle("Average Restaurant Ratings by Category")
+    plt.xlabel("Ratings")
+    plt.ylabel("Categories")
+    plt.xlim(0,5)
+    for m in rating_cat:
+        # print(m)
+        plt.barh(m[0], round(m[1],1), color=("lightgreen"))
+    
+    plt.subplot(122)
+    plt.suptitle("Average Restaurant Ratings by Building")
+    plt.xlabel("Ratings")     #barh
+    plt.ylabel("Buildings")
+    plt.xlim(0,5)
+    for n in rating_bud:
+        # print(n)
+        plt.barh(str(n[0]), round(n[1],1), color=("lightgreen"))
+    plt.show()
+    return [rating_cat[-1], rating_bud[-1]]
+
+
 
 #Try calling your functions here
 def main():
-    load_rest_data("South_U_Restaurants.db")
+    # load_rest_data("South_U_Restaurants.db")
+    plot_rest_categories("South_U_Restaurants.db")
+    # find_rest_in_building(1140, "South_U_Restaurants.db")
+    get_highest_rating("South_U_Restaurants.db")
+
+
 
 class TestHW8(unittest.TestCase):
     def setUp(self):
@@ -115,4 +211,4 @@ class TestHW8(unittest.TestCase):
 
 if __name__ == '__main__':
     main()
-    # unittest.main(verbosity=2)
+    unittest.main(verbosity=2)
